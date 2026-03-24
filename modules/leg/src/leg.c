@@ -15,61 +15,87 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <leg.h>
+#include <errno.h>
+
+#include <zephyr/devicetree.h>
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+
+#include "leg/leg.h"
+
+#define DT_DRV_COMPAT zephyr_leg
 
 LOG_MODULE_REGISTER(leg, CONFIG_LOG_DEFAULT_LEVEL);
 
-int leg_init(struct leg *leg_dev)
+BUILD_ASSERT(DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT),
+             "No status=\"okay\" zephyr,leg nodes found in devicetree");
+
+struct leg_config
 {
-    if (!leg_dev)
-    {
-        LOG_ERR("Invalid leg device pointer");
-        return -EINVAL;
-    }
+    const struct device *coxa;
+    const struct device *femur;
+};
 
-    /* Get servo devices from device tree */
-    leg_dev->coxa = device_get_binding("servo0");
-    leg_dev->femur = device_get_binding("servo1");
+struct leg_data
+{
+    uint8_t reserved;
+};
 
-    if (!leg_dev->coxa)
+static int leg_init(const struct device *dev)
+{
+    const struct leg_config *cfg = dev->config;
+
+    if (!device_is_ready(cfg->coxa))
     {
-        LOG_ERR("Coxa servo (servo0) not found in device tree");
+        LOG_ERR("%s: coxa servo is not ready", dev->name);
         return -ENODEV;
     }
 
-    if (!leg_dev->femur)
+    if (!device_is_ready(cfg->femur))
     {
-        LOG_ERR("Femur servo (servo1) not found in device tree");
+        LOG_ERR("%s: femur servo is not ready", dev->name);
         return -ENODEV;
     }
 
-    LOG_INF("Leg module initialized successfully");
+    LOG_INF("%s initialized", dev->name);
     return 0;
 }
 
-int leg_set_coxa(struct leg *leg_dev, uint32_t pulse_us)
+const struct device *leg_get_coxa(const struct device *leg_dev)
 {
-    if (!leg_dev || !leg_dev->coxa)
+    const struct leg_config *cfg;
+
+    if (leg_dev == NULL)
     {
-        LOG_ERR("Invalid leg device or coxa servo");
-        return -EINVAL;
+        return NULL;
     }
 
-    /* TODO: Implement PWM control for coxa servo */
-    LOG_DBG("Setting coxa servo to %u us", pulse_us);
-    return 0;
+    cfg = leg_dev->config;
+    return cfg->coxa;
 }
 
-int leg_set_femur(struct leg *leg_dev, uint32_t pulse_us)
+const struct device *leg_get_femur(const struct device *leg_dev)
 {
-    if (!leg_dev || !leg_dev->femur)
+    const struct leg_config *cfg;
+
+    if (leg_dev == NULL)
     {
-        LOG_ERR("Invalid leg device or femur servo");
-        return -EINVAL;
+        return NULL;
     }
 
-    /* TODO: Implement PWM control for femur servo */
-    LOG_DBG("Setting femur servo to %u us", pulse_us);
-    return 0;
+    cfg = leg_dev->config;
+    return cfg->femur;
 }
+
+#define LEG_DEFINE(inst)                                          \
+    static struct leg_data leg_data_##inst;                       \
+    static const struct leg_config leg_cfg_##inst = {             \
+        .coxa = DEVICE_DT_GET(DT_INST_PHANDLE(inst, coxa)),       \
+        .femur = DEVICE_DT_GET(DT_INST_PHANDLE(inst, femur)),     \
+    };                                                            \
+    DEVICE_DT_INST_DEFINE(inst, leg_init, NULL, &leg_data_##inst, \
+                          &leg_cfg_##inst, POST_KERNEL,           \
+                          CONFIG_KERNEL_INIT_PRIORITY_DEVICE, NULL)
+
+DT_INST_FOREACH_STATUS_OKAY(LEG_DEFINE)
