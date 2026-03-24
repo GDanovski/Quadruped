@@ -17,7 +17,8 @@ cmake_minimum_required(VERSION 3.20.0)
 
 set(ZEPHYR_EXTRA_MODULES
 	${CMAKE_CURRENT_SOURCE_DIR}/modules/leg
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/regulator
+	${CMAKE_CURRENT_SOURCE_DIR}/modules/quadruped
+	${CMAKE_CURRENT_SOURCE_DIR}/modules/voltage_regulator
 	${ZEPHYR_EXTRA_MODULES}
 )
 

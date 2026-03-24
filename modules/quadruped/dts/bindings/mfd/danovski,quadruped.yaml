@@ -13,16 +13,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-description: LEG MFD node with two servo child devices
-compatible: "zephyr,leg"
+description: Quadruped robot controller node with four leg child devices
+compatible: "danovski,quadruped"
+
+include: base.yaml
 
 properties:
-  coxa:
+  leg-front-left:
     type: phandle
     required: true
-    description: Phandle to the coxa servo device.
+    description: Phandle to the front-left leg device.
 
-  femur:
+  leg-front-right:
     type: phandle
     required: true
-    description: Phandle to the femur servo device.
+    description: Phandle to the front-right leg device.
+
+  leg-back-left:
+    type: phandle
+    required: true
+    description: Phandle to the back-left leg device.
+
+  leg-back-right:
+    type: phandle
+    required: true
+    description: Phandle to the back-right leg device.

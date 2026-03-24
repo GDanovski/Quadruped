@@ -19,22 +19,27 @@
 
 #include <zephyr/devicetree.h>
 #include <zephyr/device.h>
+#include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 #include "leg/leg.h"
 
-#define DT_DRV_COMPAT zephyr_leg
+#define DT_DRV_COMPAT danovski_leg
 
 LOG_MODULE_REGISTER(leg, CONFIG_LOG_DEFAULT_LEVEL);
 
 BUILD_ASSERT(DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT),
-             "No status=\"okay\" zephyr,leg nodes found in devicetree");
+             "No status=\"okay\" danovski,leg nodes found in devicetree");
 
 struct leg_config
 {
-    const struct device *coxa;
-    const struct device *femur;
+    struct pwm_dt_spec coxa;
+    struct pwm_dt_spec femur;
+    uint32_t coxa_min_pulse;
+    uint32_t coxa_max_pulse;
+    uint32_t femur_min_pulse;
+    uint32_t femur_max_pulse;
 };
 
 struct leg_data
@@ -46,56 +51,85 @@ static int leg_init(const struct device *dev)
 {
     const struct leg_config *cfg = dev->config;
 
-    if (!device_is_ready(cfg->coxa))
+    if (!device_is_ready(cfg->coxa.dev))
     {
         LOG_ERR("%s: coxa servo is not ready", dev->name);
         return -ENODEV;
     }
 
-    if (!device_is_ready(cfg->femur))
+    if (!device_is_ready(cfg->femur.dev))
     {
         LOG_ERR("%s: femur servo is not ready", dev->name);
         return -ENODEV;
+    }
+
+    if ((cfg->coxa_min_pulse > cfg->coxa_max_pulse) ||
+        (cfg->femur_min_pulse > cfg->femur_max_pulse))
+    {
+        LOG_ERR("%s: invalid pulse limits", dev->name);
+        return -EINVAL;
     }
 
     LOG_INF("%s initialized", dev->name);
     return 0;
 }
 
-const struct device *leg_get_coxa(const struct device *leg_dev)
+int leg_set_coxa_pulse_width(const struct device *leg_dev, uint32_t pulse_width_us)
 {
     const struct leg_config *cfg;
+    uint32_t pulse_width_ns;
 
     if (leg_dev == NULL)
     {
-        return NULL;
+        return -EINVAL;
     }
 
     cfg = leg_dev->config;
-    return cfg->coxa;
+    pulse_width_ns = PWM_USEC(pulse_width_us);
+
+    if ((pulse_width_ns < cfg->coxa_min_pulse) ||
+        (pulse_width_ns > cfg->coxa_max_pulse))
+    {
+        return -ERANGE;
+    }
+
+    return pwm_set_pulse_dt(&cfg->coxa, pulse_width_ns);
 }
 
-const struct device *leg_get_femur(const struct device *leg_dev)
+int leg_set_femur_pulse_width(const struct device *leg_dev, uint32_t pulse_width_us)
 {
     const struct leg_config *cfg;
+    uint32_t pulse_width_ns;
 
     if (leg_dev == NULL)
     {
-        return NULL;
+        return -EINVAL;
     }
 
     cfg = leg_dev->config;
-    return cfg->femur;
+    pulse_width_ns = PWM_USEC(pulse_width_us);
+
+    if ((pulse_width_ns < cfg->femur_min_pulse) ||
+        (pulse_width_ns > cfg->femur_max_pulse))
+    {
+        return -ERANGE;
+    }
+
+    return pwm_set_pulse_dt(&cfg->femur, pulse_width_ns);
 }
 
-#define LEG_DEFINE(inst)                                          \
-    static struct leg_data leg_data_##inst;                       \
-    static const struct leg_config leg_cfg_##inst = {             \
-        .coxa = DEVICE_DT_GET(DT_INST_PHANDLE(inst, coxa)),       \
-        .femur = DEVICE_DT_GET(DT_INST_PHANDLE(inst, femur)),     \
-    };                                                            \
-    DEVICE_DT_INST_DEFINE(inst, leg_init, NULL, &leg_data_##inst, \
-                          &leg_cfg_##inst, POST_KERNEL,           \
-                          CONFIG_KERNEL_INIT_PRIORITY_DEVICE, NULL)
+#define LEG_DEFINE(inst)                                            \
+    static struct leg_data leg_data_##inst;                         \
+    static const struct leg_config leg_cfg_##inst = {               \
+        .coxa = PWM_DT_SPEC_GET_BY_NAME(DT_DRV_INST(inst), coxa),   \
+        .femur = PWM_DT_SPEC_GET_BY_NAME(DT_DRV_INST(inst), femur), \
+        .coxa_min_pulse = DT_INST_PROP(inst, coxa_min_pulse),       \
+        .coxa_max_pulse = DT_INST_PROP(inst, coxa_max_pulse),       \
+        .femur_min_pulse = DT_INST_PROP(inst, femur_min_pulse),     \
+        .femur_max_pulse = DT_INST_PROP(inst, femur_max_pulse),     \
+    };                                                              \
+    DEVICE_DT_INST_DEFINE(inst, leg_init, NULL, &leg_data_##inst,   \
+                          &leg_cfg_##inst, POST_KERNEL,             \
+                          CONFIG_LEG_MODULE_INIT_PRIORITY, NULL)
 
 DT_INST_FOREACH_STATUS_OKAY(LEG_DEFINE)

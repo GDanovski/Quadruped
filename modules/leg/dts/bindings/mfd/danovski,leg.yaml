@@ -1,0 +1,52 @@
+# Copyright (C) 2026 Georgi Danovski
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+description: LEG node with integrated coxa and femur PWM configuration
+compatible: "danovski,leg"
+
+include: base.yaml
+
+properties:
+  pwms:
+    type: phandle-array
+    required: true
+    description: |
+      PWM specifiers for leg joints.
+      Index 0 is coxa and index 1 is femur.
+
+  pwm-names:
+    type: string-array
+    required: true
+    description: PWM names, expected order is "coxa", "femur".
+
+  coxa-min-pulse:
+    type: int
+    required: true
+    description: Minimum coxa pulse width in nanoseconds.
+
+  coxa-max-pulse:
+    type: int
+    required: true
+    description: Maximum coxa pulse width in nanoseconds.
+
+  femur-min-pulse:
+    type: int
+    required: true
+    description: Minimum femur pulse width in nanoseconds.
+
+  femur-max-pulse:
+    type: int
+    required: true
+    description: Maximum femur pulse width in nanoseconds.

@@ -15,100 +15,115 @@
   * along with this program.  If not, see <https: //www.gnu.org/licenses/>.
   */
  / {
-	 servo0: servo0 {
-		 compatible = "pwm-servo";
-		pwms = <&sw_pwm 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo1: servo1 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 1 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo2: servo2 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 2 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo3: servo3 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 3 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo4: servo4 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 4 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo5: servo5 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 5 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo6: servo6 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 6 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	servo7: servo7 {
-		compatible = "pwm-servo";
-		pwms = <&sw_pwm 7 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-		min-pulse = <PWM_USEC(1000)>;
-		max-pulse = <PWM_USEC(2000)>;
-	};
-
-	leg0: leg-front-left {
-		compatible = "zephyr,leg";
+	 leg_front_left: leg-front-left {
+		 compatible = "danovski,leg";
 		label = "Front Left Leg";
-		coxa = <&servo0>;
-		femur = <&servo1>;
+		pwms = <&pwm0 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>,
+		       <&pwm0 1 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+		pwm-names = "coxa", "femur";
+		coxa-min-pulse = <PWM_USEC(1000)>;
+		coxa-max-pulse = <PWM_USEC(2000)>;
+		femur-min-pulse = <PWM_USEC(1000)>;
+		femur-max-pulse = <PWM_USEC(2000)>;
 	};
 
-	leg1: leg-front-right {
-		compatible = "zephyr,leg";
+	leg_front_right: leg-front-right {
+		compatible = "danovski,leg";
 		label = "Front Right Leg";
-		coxa = <&servo2>;
-		femur = <&servo3>;
+		pwms = <&pwm0 2 PWM_MSEC(20) PWM_POLARITY_NORMAL>,
+		       <&pwm0 3 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+		pwm-names = "coxa", "femur";
+		coxa-min-pulse = <PWM_USEC(1000)>;
+		coxa-max-pulse = <PWM_USEC(2000)>;
+		femur-min-pulse = <PWM_USEC(1000)>;
+		femur-max-pulse = <PWM_USEC(2000)>;
 	};
 
-	leg2: leg-back-left {
-		compatible = "zephyr,leg";
+	leg_back_left: leg-back-left {
+		compatible = "danovski,leg";
 		label = "Back Left Leg";
-		coxa = <&servo4>;
-		femur = <&servo5>;
+		pwms = <&pwm1 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>,
+		       <&pwm1 1 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+		pwm-names = "coxa", "femur";
+		coxa-min-pulse = <PWM_USEC(1000)>;
+		coxa-max-pulse = <PWM_USEC(2000)>;
+		femur-min-pulse = <PWM_USEC(1000)>;
+		femur-max-pulse = <PWM_USEC(2000)>;
 	};
 
-	leg3: leg-back-right {
-		compatible = "zephyr,leg";
+	leg_back_right: leg-back-right {
+		compatible = "danovski,leg";
 		label = "Back Right Leg";
-		coxa = <&servo6>;
-		femur = <&servo7>;
+		pwms = <&pwm1 2 PWM_MSEC(20) PWM_POLARITY_NORMAL>,
+		       <&pwm1 3 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
+		pwm-names = "coxa", "femur";
+		coxa-min-pulse = <PWM_USEC(1000)>;
+		coxa-max-pulse = <PWM_USEC(2000)>;
+		femur-min-pulse = <PWM_USEC(1000)>;
+		femur-max-pulse = <PWM_USEC(2000)>;
+	};
+
+	quadruped: quadruped {
+		compatible = "danovski,quadruped";
+		label = "Quadruped Robot";
+		leg-front-left = <&leg_front_left>;
+		leg-front-right = <&leg_front_right>;
+		leg-back-left = <&leg_back_left>;
+		leg-back-right = <&leg_back_right>;
 	};
 };
 
-&sw_pwm {
+
+&pinctrl {
+	pwm0_default: pwm0_default {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 0, 17)>,
+			        <NRF_PSEL(PWM_OUT1, 0, 20)>,
+			        <NRF_PSEL(PWM_OUT2, 0, 22)>,
+			        <NRF_PSEL(PWM_OUT3, 0, 24)>;
+		};
+	};
+
+	pwm0_sleep: pwm0_sleep {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 0, 17)>,
+			        <NRF_PSEL(PWM_OUT1, 0, 20)>,
+			        <NRF_PSEL(PWM_OUT2, 0, 22)>,
+			        <NRF_PSEL(PWM_OUT3, 0, 24)>;
+			low-power-enable;
+		};
+	};
+
+	pwm1_default: pwm1_default {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 15)>,
+			        <NRF_PSEL(PWM_OUT1, 1, 13)>,
+			        <NRF_PSEL(PWM_OUT2, 1, 11)>,
+			        <NRF_PSEL(PWM_OUT3, 0, 10)>;
+		};
+	};
+
+	pwm1_sleep: pwm1_sleep {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 15)>,
+			        <NRF_PSEL(PWM_OUT1, 1, 13)>,
+			        <NRF_PSEL(PWM_OUT2, 1, 11)>,
+			        <NRF_PSEL(PWM_OUT3, 0, 10)>;
+			low-power-enable;
+		};
+	};
+};
+
+&pwm0 {
 	status = "okay";
-	clock-prescaler = <3>;
-	channel-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>,
-	                <&gpio0 20 GPIO_ACTIVE_HIGH>,
-	                <&gpio0 22 GPIO_ACTIVE_HIGH>,
-	                <&gpio0 24 GPIO_ACTIVE_HIGH>,
-	                <&gpio1 15 GPIO_ACTIVE_HIGH>,
-	                <&gpio1 13 GPIO_ACTIVE_HIGH>,
-	                <&gpio1 11 GPIO_ACTIVE_HIGH>,
-	                <&gpio0 10 GPIO_ACTIVE_HIGH>;
+	pinctrl-0 = <&pwm0_default>;
+	pinctrl-1 = <&pwm0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&pwm1 {
+	status = "okay";
+	pinctrl-0 = <&pwm1_default>;
+	pinctrl-1 = <&pwm1_sleep>;
+	pinctrl-names = "default", "sleep";
 };

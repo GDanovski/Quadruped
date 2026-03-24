@@ -13,5 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-build:
-  cmake: .
+zephyr_library()
+zephyr_library_sources_ifdef(CONFIG_VOLTAGE_REGULATOR_MODULE src/voltage_regulator.c)
+zephyr_library_include_directories(include)
+zephyr_include_directories(include)

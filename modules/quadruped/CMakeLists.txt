@@ -14,6 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 zephyr_library()
-zephyr_library_sources_ifdef(CONFIG_LEG_MODULE src/leg.c)
+zephyr_library_sources_ifdef(CONFIG_QUADRUPED_MODULE src/quadruped.c)
 zephyr_library_include_directories(include)
 zephyr_include_directories(include)

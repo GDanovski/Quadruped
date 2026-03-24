@@ -15,24 +15,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef REGULATOR_REGULATOR_H_
-#define REGULATOR_REGULATOR_H_
+#ifndef VOLTAGE_REGULATOR_VOLTAGE_REGULATOR_H_
+#define VOLTAGE_REGULATOR_VOLTAGE_REGULATOR_H_
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    /**
-     * @brief Configure REGOUT0 to 3.3V when supported by the target.
-     *
-     * Programs UICR REGOUT0 to 3.3V if needed and triggers a system reset so
-     * the new voltage setting is applied.
-     */
-    void regulator_configure_regout0_3v3(void);
+/**
+ * @brief Configure REGOUT0 to 3.3V when supported by the target.
+ *
+ * Programs UICR REGOUT0 to 3.3V if needed and triggers a system reset so
+ * the new voltage setting is applied.
+ */
+#if defined(CONFIG_VOLTAGE_REGULATOR_MODULE)
+    void voltage_regulator_configure_regout0_3v3(void);
+#else
+static inline void voltage_regulator_configure_regout0_3v3(void)
+{
+}
+#endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* REGULATOR_REGULATOR_H_ */
+#endif /* VOLTAGE_REGULATOR_VOLTAGE_REGULATOR_H_ */

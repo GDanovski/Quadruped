@@ -18,9 +18,9 @@
 #include <nrfx.h>
 #include <zephyr/logging/log.h>
 
-#include "regulator/regulator.h"
+#include "voltage_regulator/voltage_regulator.h"
 
-LOG_MODULE_REGISTER(regulator);
+LOG_MODULE_REGISTER(voltage_regulator);
 
 /**
  * @brief Internal helper that writes UICR REGOUT0 to 3.3V and resets.
@@ -61,7 +61,7 @@ static void configure_regout0_3v3(void)
 #endif
 }
 
-void regulator_configure_regout0_3v3(void)
+void voltage_regulator_configure_regout0_3v3(void)
 {
     configure_regout0_3v3();
 }

@@ -18,6 +18,9 @@
 #ifndef LEG_LEG_H_
 #define LEG_LEG_H_
 
+#include <errno.h>
+#include <stdint.h>
+
 #include <zephyr/device.h>
 
 #ifdef __cplusplus
@@ -25,21 +28,45 @@ extern "C"
 {
 #endif
 
-    /**
-     * @brief Return the coxa servo device used by a LEG instance.
-     *
-     * @param leg_dev LEG MFD device.
-     * @return Servo device pointer on success, NULL on invalid input.
-     */
-    const struct device *leg_get_coxa(const struct device *leg_dev);
+/**
+ * @brief Set coxa pulse width for a LEG instance.
+ *
+ * @param leg_dev LEG MFD device.
+ * @param pulse_width_us Pulse width in microseconds.
+ * @return 0 on success, negative errno otherwise.
+ */
+#if defined(CONFIG_LEG_MODULE)
+    int leg_set_coxa_pulse_width(const struct device *leg_dev,
+                                 uint32_t pulse_width_us);
+#else
+static inline int leg_set_coxa_pulse_width(const struct device *leg_dev,
+                                           uint32_t pulse_width_us)
+{
+    ARG_UNUSED(leg_dev);
+    ARG_UNUSED(pulse_width_us);
+    return -ENOTSUP;
+}
+#endif
 
-    /**
-     * @brief Return the femur servo device used by a LEG instance.
-     *
-     * @param leg_dev LEG MFD device.
-     * @return Servo device pointer on success, NULL on invalid input.
-     */
-    const struct device *leg_get_femur(const struct device *leg_dev);
+/**
+ * @brief Set femur pulse width for a LEG instance.
+ *
+ * @param leg_dev LEG MFD device.
+ * @param pulse_width_us Pulse width in microseconds.
+ * @return 0 on success, negative errno otherwise.
+ */
+#if defined(CONFIG_LEG_MODULE)
+    int leg_set_femur_pulse_width(const struct device *leg_dev,
+                                  uint32_t pulse_width_us);
+#else
+static inline int leg_set_femur_pulse_width(const struct device *leg_dev,
+                                            uint32_t pulse_width_us)
+{
+    ARG_UNUSED(leg_dev);
+    ARG_UNUSED(pulse_width_us);
+    return -ENOTSUP;
+}
+#endif
 
 #ifdef __cplusplus
 }

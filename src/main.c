@@ -18,20 +18,19 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "regulator/regulator.h"
+#include "voltage_regulator/voltage_regulator.h"
 
 LOG_MODULE_REGISTER(app);
 
 int main(void)
 {
-        regulator_configure_regout0_3v3();
-        LOG_INF("Application zephyr_quadrapod started");
+	voltage_regulator_configure_regout0_3v3();
 
-        while (1)
-        {
-                LOG_INF("still running");
-                k_sleep(K_SECONDS(1));
-        }
+	while (1)
+	{
+		LOG_INF("still running");
+		k_sleep(K_SECONDS(1));
+	}
 
-        return 0;
+	return 0;
 }
