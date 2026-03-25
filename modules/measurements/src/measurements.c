@@ -136,23 +136,23 @@ static int measurements_init(const struct device *dev)
     return adc_channel_setup_dt(&cfg->adc);
 }
 
-#define MEASUREMENTS_DEFINE(inst)                                          \
-    static struct measurements_data measurements_data_##inst;              \
-    static const struct measurements_config measurements_config_##inst = { \
-        .adc = ADC_DT_SPEC_INST_GET_BY_IDX(inst, 0),                       \
-        .resolution = DT_INST_PROP_OR(inst, resolution, 12),               \
-        .oversampling = DT_INST_PROP_OR(inst, oversampling, 4),            \
-        .calibrate = DT_INST_PROP(inst, calibrate),                        \
+#define MEASUREMENTS_DEFINE(inst)                                                       \
+    static struct measurements_data measurements_data_##inst;                           \
+    static const struct measurements_config measurements_config_##inst = {              \
+        .adc = ADC_DT_SPEC_INST_GET_BY_IDX(inst, 0),                                    \
+        .resolution = DT_INST_PROP_OR(inst, resolution, 12),                            \
+        .oversampling = DT_INST_PROP_OR(inst, oversampling, 4),                         \
+        .calibrate = DT_INST_PROP(inst, calibrate),                                     \
         .voltage_divider_num = DT_INST_PROP_OR(inst, voltage_divider_numerator, 1),     \
         .voltage_divider_denom = DT_INST_PROP_OR(inst, voltage_divider_denominator, 1), \
-    };                                                                     \
-    SENSOR_DEVICE_DT_INST_DEFINE(inst,                                     \
-                                 measurements_init,                        \
-                                 NULL,                                     \
-                                 &measurements_data_##inst,                \
-                                 &measurements_config_##inst,              \
-                                 POST_KERNEL,                              \
-                                 CONFIG_MEASUREMENTS_MODULE_INIT_PRIORITY, \
+    };                                                                                  \
+    SENSOR_DEVICE_DT_INST_DEFINE(inst,                                                  \
+                                 measurements_init,                                     \
+                                 NULL,                                                  \
+                                 &measurements_data_##inst,                             \
+                                 &measurements_config_##inst,                           \
+                                 POST_KERNEL,                                           \
+                                 CONFIG_MEASUREMENTS_MODULE_INIT_PRIORITY,              \
                                  &measurements_api);
 
 DT_INST_FOREACH_STATUS_OKAY(MEASUREMENTS_DEFINE)

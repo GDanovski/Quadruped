@@ -13,20 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.20.0)
-
-set(ZEPHYR_EXTRA_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/leg
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/quadruped
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/voltage_regulator
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/move_controller
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/measurements
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/ble_peripheral
-	${ZEPHYR_EXTRA_MODULES}
-)
-
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-
-project(zephyr_quadrapod)
-
-target_sources(app PRIVATE src/main.c)
+zephyr_library()
+zephyr_library_sources_ifdef(CONFIG_BLE_PERIPHERAL_MODULE src/ble_peripheral.c)
+zephyr_library_include_directories(include)
+zephyr_include_directories(include)

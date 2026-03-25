@@ -13,20 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.20.0)
+menu "BLE peripheral module"
 
-set(ZEPHYR_EXTRA_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/leg
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/quadruped
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/voltage_regulator
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/move_controller
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/measurements
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/ble_peripheral
-	${ZEPHYR_EXTRA_MODULES}
-)
+config BLE_PERIPHERAL_MODULE
+	bool "Enable BLE peripheral module"
+	default y
+	depends on BT && BT_PERIPHERAL && BT_SMP
 
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+config BLE_PERIPHERAL_MODULE_LOG_LEVEL
+	int "BLE peripheral module log level"
+	range 0 4
+	default 3
+	depends on BLE_PERIPHERAL_MODULE && LOG
 
-project(zephyr_quadrapod)
-
-target_sources(app PRIVATE src/main.c)
+endmenu
