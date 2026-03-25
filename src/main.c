@@ -20,9 +20,13 @@
 #include <zephyr/sys/atomic.h>
 
 #include "move_controller/move_controller.h"
+#include "measurements/measurements.h"
 #include "voltage_regulator/voltage_regulator.h"
 
 #define APP_MOVE_DELAY_MS 500u
+#define APP_MEASUREMENTS_SAMPLE_PERIOD_MS 1000u
+#define APP_MEASUREMENTS_THREAD_STACK_SIZE 1024
+#define APP_MEASUREMENTS_THREAD_PRIORITY 6
 #define APP_MOVE_THREAD_STACK_SIZE 1024
 #define APP_MOVE_THREAD_PRIORITY 5
 
@@ -55,6 +59,72 @@ static void app_move_thread(void *arg1, void *arg2, void *arg3)
 		}
 	}
 }
+
+static void app_measurements_thread(void *arg1, void *arg2, void *arg3)
+{
+	ARG_UNUSED(arg1);
+	ARG_UNUSED(arg2);
+	ARG_UNUSED(arg3);
+
+	uint32_t avg_mv = 0;
+	uint32_t sample_sum = 0;
+	const int sample_count = 100;
+	bool sample_init = false;
+
+	while (1)
+	{
+		int ret = measurements_sample_fetch();
+		if (ret != 0)
+		{
+			LOG_ERR("measurements_sample_fetch failed: %d", ret);
+			continue;
+		}
+
+		struct sensor_value val;
+		ret = measurements_channel_get(&val);
+		if (ret != 0)
+		{
+			LOG_ERR("measurements_channel_get failed: %d", ret);
+			continue;
+		}
+
+		int32_t sample_mv = (val.val1 * 1000) + (val.val2 / 1000);
+
+		if (sample_mv < 0)
+		{
+			LOG_ERR("Invalid measurement value: %d mV", sample_mv);
+			continue;
+		}
+
+		// Initialize the moving average with the first sample, then update it with a rolling sum for subsequent samples.
+		if (!sample_init)
+		{
+			avg_mv = sample_mv;
+			sample_sum = avg_mv * sample_count;
+			sample_init = true;
+		}
+		else
+		{
+			sample_sum -= avg_mv;
+			sample_sum += sample_mv;
+			avg_mv = sample_sum / sample_count;
+		}
+
+		LOG_INF("measurements: %d mV (avg: %d mV)", sample_mv, avg_mv);
+
+		k_sleep(K_MSEC(APP_MEASUREMENTS_SAMPLE_PERIOD_MS));
+	}
+}
+
+K_THREAD_DEFINE(app_measurements_tid,
+				APP_MEASUREMENTS_THREAD_STACK_SIZE,
+				app_measurements_thread,
+				NULL,
+				NULL,
+				NULL,
+				APP_MEASUREMENTS_THREAD_PRIORITY,
+				0,
+				0);
 
 K_THREAD_DEFINE(app_move_tid,
 				APP_MOVE_THREAD_STACK_SIZE,

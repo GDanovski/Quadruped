@@ -1,3 +1,6 @@
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-saadc.h>
+
 /*
  * Copyright (C) 2026 Georgi Danovski
  *
@@ -71,6 +74,17 @@
 		leg-back-left = <&leg_back_left>;
 		leg-back-right = <&leg_back_right>;
 	};
+
+	measurements: measurements {
+		compatible = "danovski,measurements";
+		io-channels = <&adc 0>;
+		resolution = <12>;
+		oversampling = <4>;
+		calibrate;
+		voltage-divider-numerator = <1>;
+		voltage-divider-denominator = <1>;
+		status = "okay";
+	};
 };
 
 
@@ -126,4 +140,20 @@
 	pinctrl-0 = <&pwm1_default>;
 	pinctrl-1 = <&pwm1_sleep>;
 	pinctrl-names = "default", "sleep";
+};
+
+&adc {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN0>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <4>;
+	};
 };

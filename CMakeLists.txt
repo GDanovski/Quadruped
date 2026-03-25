@@ -20,6 +20,7 @@ set(ZEPHYR_EXTRA_MODULES
 	${CMAKE_CURRENT_SOURCE_DIR}/modules/quadruped
 	${CMAKE_CURRENT_SOURCE_DIR}/modules/voltage_regulator
 	${CMAKE_CURRENT_SOURCE_DIR}/modules/move_controller
+	${CMAKE_CURRENT_SOURCE_DIR}/modules/measurements
 	${ZEPHYR_EXTRA_MODULES}
 )
 

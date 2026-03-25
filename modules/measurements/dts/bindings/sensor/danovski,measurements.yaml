@@ -1,0 +1,48 @@
+# Copyright (C) 2026 Georgi Danovski
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+description: Measurements sensor backed by one ADC channel
+compatible: "danovski,measurements"
+
+include: sensor-device.yaml
+
+properties:
+  io-channels:
+    type: phandle-array
+    required: true
+
+  resolution:
+    type: int
+    description: ADC sequence resolution in bits.
+    default: 12
+
+  oversampling:
+    type: int
+    description: ADC sequence oversampling factor.
+    default: 4
+
+  calibrate:
+    type: boolean
+    description: Run ADC calibration before the sequence.
+
+  voltage-divider-numerator:
+    type: int
+    description: Voltage divider numerator to scale ADC reading to actual voltage.
+    default: 1
+
+  voltage-divider-denominator:
+    type: int
+    description: Voltage divider denominator to scale ADC reading to actual voltage.
+    default: 1

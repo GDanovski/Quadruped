@@ -13,26 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# Disable bootloader support, as the bootloader is not used in this project
-CONFIG_BOARD_HAS_NRF5_BOOTLOADER=n
-
-# Enable RTT console support and logging
-CONFIG_CONSOLE=y
-CONFIG_PRINTK=y
-CONFIG_USE_SEGGER_RTT=y
-CONFIG_RTT_CONSOLE=y
-CONFIG_UART_CONSOLE=n
-CONFIG_LOG=y
-CONFIG_LOG_BACKEND_RTT=y
-
-# Enable zephyr modules
-CONFIG_PWM=y
-CONFIG_SENSOR=y
-CONFIG_ADC=y
-
-# Enable project modules
-CONFIG_LEG_MODULE=y
-CONFIG_QUADRUPED_MODULE=y
-CONFIG_VOLTAGE_REGULATOR_MODULE=y
-CONFIG_MOVE_CONTROLLER_MODULE=y
-CONFIG_MEASUREMENTS_MODULE=y
+zephyr_library()
+zephyr_library_sources_ifdef(CONFIG_MEASUREMENTS_MODULE src/measurements.c)
+zephyr_library_include_directories(include)
+zephyr_include_directories(include)
