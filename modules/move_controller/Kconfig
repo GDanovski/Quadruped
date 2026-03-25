@@ -13,23 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# Disable bootloader support, as the bootloader is not used in this project
-CONFIG_BOARD_HAS_NRF5_BOOTLOADER=n
+menu "Move controller module"
 
-# Enable RTT console support and logging
-CONFIG_CONSOLE=y
-CONFIG_PRINTK=y
-CONFIG_USE_SEGGER_RTT=y
-CONFIG_RTT_CONSOLE=y
-CONFIG_UART_CONSOLE=n
-CONFIG_LOG=y
-CONFIG_LOG_BACKEND_RTT=y
+config MOVE_CONTROLLER_MODULE
+	bool "Enable move controller module"
+	default y
+	depends on QUADRUPED_MODULE
 
-# Enable zephyr modules
-CONFIG_PWM=y
+config MOVE_CONTROLLER_MODULE_LOG_LEVEL
+	int "Move controller module log level"
+	range 0 4
+	default 3
+	depends on MOVE_CONTROLLER_MODULE && LOG
 
-# Enable project modules
-CONFIG_LEG_MODULE=y
-CONFIG_QUADRUPED_MODULE=y
-CONFIG_VOLTAGE_REGULATOR_MODULE=y
-CONFIG_MOVE_CONTROLLER_MODULE=y
+endmenu
