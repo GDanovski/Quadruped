@@ -20,6 +20,12 @@ config MOVE_CONTROLLER_MODULE
 	default y
 	depends on QUADRUPED_MODULE
 
+config MOVE_CONTROLLER_MODULE_INIT_PRIORITY
+	int "Move controller init priority"
+	range 0 999
+	default 91
+	depends on MOVE_CONTROLLER_MODULE
+
 config MOVE_CONTROLLER_MODULE_LOG_LEVEL
 	int "Move controller module log level"
 	range 0 4

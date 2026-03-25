@@ -19,6 +19,7 @@
 #define MOVE_CONTROLLER_MOVE_CONTROLLER_H_
 
 #include <errno.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -33,6 +34,7 @@ extern "C"
         MOVE_COMMAND_REVERSE,      /**< Advance one gait step backward. */
         MOVE_COMMAND_ROTATE_LEFT,  /**< Advance one gait step rotating left. */
         MOVE_COMMAND_ROTATE_RIGHT, /**< Advance one gait step rotating right. */
+        MOVE_COMMAND_COUNT,        /**< Total number of movement commands. */
     };
 
 /**
@@ -43,14 +45,16 @@ extern "C"
  * gait starts cleanly from phase 0.
  *
  * @param cmd Move command to execute.
+ * @param delay_ms Delay in milliseconds inserted between servo moves.
  * @return 0 on success, negative errno otherwise.
  */
 #if defined(CONFIG_MOVE_CONTROLLER_MODULE)
-    int move_controller_execute(enum move_command cmd);
+    int move_controller_execute(enum move_command cmd, uint32_t delay_ms);
 #else
-static inline int move_controller_execute(enum move_command cmd)
+static inline int move_controller_execute(enum move_command cmd, uint32_t delay_ms)
 {
     ARG_UNUSED(cmd);
+    ARG_UNUSED(delay_ms);
     return -ENOTSUP;
 }
 #endif

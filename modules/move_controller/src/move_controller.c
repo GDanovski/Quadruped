@@ -8,7 +8,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MEstatusHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <stdint.h>
 
+#include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
@@ -144,12 +145,26 @@ static const struct gait_sequence gait_table[] = {
 static enum move_command last_command = MOVE_COMMAND_IDLE;
 static uint8_t gait_step = 0;
 
+static int move_controller_init(void)
+{
+    int ret = move_controller_execute(MOVE_COMMAND_IDLE, 0u);
+
+    if (ret != 0)
+    {
+        LOG_ERR("failed to set idle pose during init: %d", ret);
+    }
+
+    return ret;
+}
+
+SYS_INIT(move_controller_init, POST_KERNEL, CONFIG_MOVE_CONTROLLER_MODULE_INIT_PRIORITY);
+
 /* -------------------------------------------------------------------------
  * Public API
  * ------------------------------------------------------------------------- */
-int move_controller_execute(enum move_command cmd)
+int move_controller_execute(enum move_command cmd, uint32_t delay_ms)
 {
-    if (cmd >= ARRAY_SIZE(gait_table))
+    if (cmd >= MOVE_COMMAND_COUNT)
     {
         LOG_ERR("Unknown move command: %d", (int)cmd);
         return -EINVAL;
@@ -167,7 +182,7 @@ int move_controller_execute(enum move_command cmd)
 
     LOG_DBG("cmd=%d phase=%u/%u", (int)cmd, gait_step, seq->num_phases);
 
-    int rc = 0;
+    int status = 0;
 
     for (enum quadruped_leg_index leg = 0; leg < QUADRUPED_LEG_COUNT; leg++)
     {
@@ -177,18 +192,28 @@ int move_controller_execute(enum move_command cmd)
         if (ret != 0)
         {
             LOG_ERR("coxa failed leg=%d ret=%d", (int)leg, ret);
-            rc = ret;
+            status = ret;
+        }
+
+        if (delay_ms > 0u)
+        {
+            k_msleep(delay_ms);
         }
 
         ret = quadruped_set_leg_movement(leg, phase->legs[leg].femur);
         if (ret != 0)
         {
             LOG_ERR("femur failed leg=%d ret=%d", (int)leg, ret);
-            rc = ret;
+            status = ret;
+        }
+
+        if (delay_ms > 0u)
+        {
+            k_msleep(delay_ms);
         }
     }
 
     gait_step = (gait_step + 1) % seq->num_phases;
 
-    return rc;
+    return status;
 }
