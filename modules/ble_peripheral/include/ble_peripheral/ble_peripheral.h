@@ -48,11 +48,15 @@ extern "C"
     /** @brief Callback type for voltage reads from central. */
     typedef int32_t (*ble_voltage_mv_cb_t)(void);
 
+    /** @brief Callback type for BLE disconnect events. */
+    typedef void (*ble_disconnected_cb_t)(void);
+
     /** @brief Callback struct used by the BLE peripheral service. */
     struct ble_peripheral_cb
     {
         ble_movement_cb_t movement_cb;
         ble_voltage_mv_cb_t voltage_mv_cb;
+        ble_disconnected_cb_t disconnected_cb;
     };
 
 /**

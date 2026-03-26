@@ -47,6 +47,13 @@ static atomic_t ble_whitelist_has_entries = ATOMIC_INIT(0);
 
 static struct bt_conn *ble_current_conn;
 static struct k_work_delayable ble_adv_retry_work;
+#if defined(CONFIG_BT_USER_PHY_UPDATE)
+static const struct bt_conn_le_phy_param ble_preferred_phy = {
+    .options = BT_CONN_LE_PHY_OPT_NONE,
+    .pref_tx_phy = BT_GAP_LE_PHY_CODED,
+    .pref_rx_phy = BT_GAP_LE_PHY_CODED,
+};
+#endif
 
 /* -------------------------------------------------------------------------
  * Advertising payloads
@@ -167,6 +174,37 @@ static void ble_adv_retry_work_handler(struct k_work *work)
 {
     ARG_UNUSED(work);
     ble_ensure_advertising();
+}
+
+static void ble_request_coded_phy(struct bt_conn *conn)
+{
+#if defined(CONFIG_BT_USER_PHY_UPDATE)
+    int ret;
+
+    if (conn == NULL)
+    {
+        return;
+    }
+
+    LOG_DBG("Requesting LE Coded PHY preference (TX/RX)");
+    ret = bt_conn_le_phy_update(conn, &ble_preferred_phy);
+    if (ret == 0)
+    {
+        LOG_DBG("PHY preference request accepted by local controller");
+        return;
+    }
+
+    if (ret == -ENOTSUP || ret == -EINVAL || ret == -ENOMEM || ret == -EBUSY)
+    {
+        LOG_DBG("LE Coded PHY preference not applied, keeping default PHY (err %d)", ret);
+        return;
+    }
+
+    LOG_DBG("PHY preference request failed, keeping default PHY (err %d)", ret);
+#else
+    ARG_UNUSED(conn);
+    LOG_DBG("LE Coded PHY preference unavailable in this build; keeping default PHY");
+#endif
 }
 
 static size_t voltage_mv_to_string(char *out, size_t out_size)
@@ -308,6 +346,8 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
     {
         LOG_ERR("Failed to request encryption: %d", ret);
     }
+
+    ble_request_coded_phy(conn);
 }
 
 static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
@@ -323,6 +363,11 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
     }
 
     atomic_set(&ble_voltage_notify_enabled, 0);
+
+    if (ble_cb.disconnected_cb != NULL)
+    {
+        ble_cb.disconnected_cb();
+    }
 
     ble_ensure_advertising();
 }
@@ -343,10 +388,31 @@ static void security_changed_cb(struct bt_conn *conn,
     }
 }
 
+#if defined(CONFIG_BT_USER_PHY_UPDATE)
+static void le_phy_updated_cb(struct bt_conn *conn,
+                              struct bt_conn_le_phy_info *param)
+{
+    ARG_UNUSED(conn);
+
+    LOG_DBG("PHY update callback: TX PHY 0x%02x, RX PHY 0x%02x", param->tx_phy, param->rx_phy);
+
+    if (param->tx_phy == BT_GAP_LE_PHY_CODED || param->rx_phy == BT_GAP_LE_PHY_CODED)
+    {
+        LOG_DBG("LE Coded PHY active on at least one direction");
+        return;
+    }
+
+    LOG_DBG("Peer/controller kept uncoded PHY; continuing without LE Coded");
+}
+#endif
+
 BT_CONN_CB_DEFINE(conn_callbacks) = {
     .connected = connected_cb,
     .disconnected = disconnected_cb,
     .security_changed = security_changed_cb,
+#if defined(CONFIG_BT_USER_PHY_UPDATE)
+    .le_phy_updated = le_phy_updated_cb,
+#endif
 };
 
 /* -------------------------------------------------------------------------
@@ -404,6 +470,7 @@ int ble_peripheral_init(struct ble_peripheral_cb *callbacks)
     {
         ble_cb.movement_cb = callbacks->movement_cb;
         ble_cb.voltage_mv_cb = callbacks->voltage_mv_cb;
+        ble_cb.disconnected_cb = callbacks->disconnected_cb;
     }
 
     k_work_init_delayable(&ble_adv_retry_work, ble_adv_retry_work_handler);

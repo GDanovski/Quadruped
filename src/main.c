@@ -50,6 +50,12 @@ static int32_t app_ble_voltage_mv_cb(void)
     return (int32_t)atomic_get(&app_voltage_mv);
 }
 
+static void app_ble_disconnected_cb(void)
+{
+    LOG_DBG("BLE disconnected, resetting move command to IDLE");
+    atomic_set(&app_move_command, (atomic_val_t)MOVE_COMMAND_IDLE);
+}
+
 static void app_move_thread(void *arg1, void *arg2, void *arg3)
 {
     ARG_UNUSED(arg1);
@@ -125,7 +131,7 @@ static void app_measurements_thread(void *arg1, void *arg2, void *arg3)
             avg_mv = sample_sum / sample_count;
         }
 
-        atomic_set(&app_voltage_mv, (atomic_val_t)sample_mv);
+        atomic_set(&app_voltage_mv, (atomic_val_t)avg_mv);
         LOG_DBG("measurements: %d mV (avg: %u mV)", sample_mv, avg_mv);
 
         k_sleep(K_MSEC(APP_MEASUREMENTS_SAMPLE_PERIOD_MS));
@@ -141,6 +147,7 @@ static void app_ble_thread(void *arg1, void *arg2, void *arg3)
     struct ble_peripheral_cb ble_callbacks = {
         .movement_cb = app_ble_movement_cb,
         .voltage_mv_cb = app_ble_voltage_mv_cb,
+        .disconnected_cb = app_ble_disconnected_cb,
     };
 
     int ret = ble_peripheral_init(&ble_callbacks);
