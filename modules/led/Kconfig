@@ -13,21 +13,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.20.0)
+menuconfig LED_MODULE
+	bool "LED module"
+	depends on GPIO
+	help
+	  Enable onboard LED helper API.
 
-set(ZEPHYR_EXTRA_MODULES
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/leg
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/quadruped
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/voltage_regulator
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/move_controller
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/measurements
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/ble_peripheral
-	${CMAKE_CURRENT_SOURCE_DIR}/modules/led
-	${ZEPHYR_EXTRA_MODULES}
-)
+if LED_MODULE
 
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+config LED_MODULE_LOG_LEVEL
+	int "LED module log level"
+	range 0 4
+	default 3
+	depends on LOG
+	help
+	  Log level for the LED module.
+	  0: off, 1: error, 2: warning, 3: info, 4: debug.
 
-project(zephyr_quadrapod)
-
-target_sources(app PRIVATE src/main.c)
+endif

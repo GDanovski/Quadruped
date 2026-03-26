@@ -20,6 +20,7 @@
 #include <zephyr/sys/atomic.h>
 
 #include "ble_peripheral/ble_peripheral.h"
+#include "led/led.h"
 #include "measurements/measurements.h"
 #include "move_controller/move_controller.h"
 #include "voltage_regulator/voltage_regulator.h"
@@ -33,6 +34,9 @@
 #define APP_BLE_NOTIFY_PERIOD_MS 1000u
 #define APP_MOVE_THREAD_STACK_SIZE 1024
 #define APP_MOVE_THREAD_PRIORITY 5
+#define APP_LED_THREAD_STACK_SIZE 1024
+#define APP_LED_THREAD_PRIORITY 8
+#define APP_LED_PERIOD_MS 1000u
 
 LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
 
@@ -164,6 +168,34 @@ static void app_ble_thread(void *arg1, void *arg2, void *arg3)
     }
 }
 
+static void app_led_thread(void *arg1, void *arg2, void *arg3)
+{
+    ARG_UNUSED(arg1);
+    ARG_UNUSED(arg2);
+    ARG_UNUSED(arg3);
+
+    while (1)
+    {
+        int ret;
+
+        if (ble_peripheral_is_connected())
+        {
+            ret = led_set(true);
+        }
+        else
+        {
+            ret = led_toggle();
+        }
+
+        if (ret != 0)
+        {
+            LOG_ERR("LED update failed: %d", ret);
+        }
+
+        k_sleep(K_MSEC(APP_LED_PERIOD_MS));
+    }
+}
+
 K_THREAD_DEFINE(app_measurements_tid,
                 APP_MEASUREMENTS_THREAD_STACK_SIZE,
                 app_measurements_thread,
@@ -191,6 +223,16 @@ K_THREAD_DEFINE(app_ble_tid,
                 NULL,
                 NULL,
                 APP_BLE_THREAD_PRIORITY,
+                0,
+                0);
+
+K_THREAD_DEFINE(app_led_tid,
+                APP_LED_THREAD_STACK_SIZE,
+                app_led_thread,
+                NULL,
+                NULL,
+                NULL,
+                APP_LED_THREAD_PRIORITY,
                 0,
                 0);
 

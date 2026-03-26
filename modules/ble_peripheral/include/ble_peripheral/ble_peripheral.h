@@ -71,6 +71,7 @@ extern "C"
 #if defined(CONFIG_BLE_PERIPHERAL_MODULE)
     int ble_peripheral_init(struct ble_peripheral_cb *callbacks);
     int ble_peripheral_notify_voltage_mv(void);
+    bool ble_peripheral_is_connected(void);
 
 #else /* CONFIG_BLE_PERIPHERAL_MODULE not set */
 
@@ -83,6 +84,11 @@ static inline int ble_peripheral_init(struct ble_peripheral_cb *callbacks)
 static inline int ble_peripheral_notify_voltage_mv(void)
 {
     return -ENOTSUP;
+}
+
+static inline bool ble_peripheral_is_connected(void)
+{
+    return false;
 }
 #endif
 

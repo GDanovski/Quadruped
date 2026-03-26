@@ -44,6 +44,7 @@ static atomic_t ble_voltage_notify_enabled = ATOMIC_INIT(0);
 static atomic_t ble_adv_retry_count = ATOMIC_INIT(0);
 static atomic_t ble_adv_retry_work_ready = ATOMIC_INIT(0);
 static atomic_t ble_whitelist_has_entries = ATOMIC_INIT(0);
+static atomic_t ble_connected = ATOMIC_INIT(0);
 
 static struct bt_conn *ble_current_conn;
 static struct k_work_delayable ble_adv_retry_work;
@@ -337,6 +338,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
     }
 
     ble_current_conn = bt_conn_ref(conn);
+    atomic_set(&ble_connected, 1);
     LOG_INF("Central connected");
 
     /* Upgrade link to encrypted (unauthenticated / just-works pairing) */
@@ -361,6 +363,8 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
         bt_conn_unref(ble_current_conn);
         ble_current_conn = NULL;
     }
+
+    atomic_set(&ble_connected, 0);
 
     atomic_set(&ble_voltage_notify_enabled, 0);
 
@@ -527,4 +531,9 @@ int ble_peripheral_notify_voltage_mv(void)
     }
 
     return ret;
+}
+
+bool ble_peripheral_is_connected(void)
+{
+    return (atomic_get(&ble_connected) != 0);
 }
