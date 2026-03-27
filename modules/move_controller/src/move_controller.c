@@ -16,6 +16,7 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <zephyr/init.h>
@@ -27,35 +28,7 @@
 
 LOG_MODULE_REGISTER(move_controller, CONFIG_MOVE_CONTROLLER_MODULE_LOG_LEVEL);
 
-/* -------------------------------------------------------------------------
- * Gait table types
- * -------------------------------------------------------------------------
- * Each gait_leg_state holds one coxa and one femur command for a single leg.
- * A gait_phase groups the states for all four legs in one time-step.
- * A gait_sequence bundles a pointer to an array of phases with its length.
- * ------------------------------------------------------------------------- */
-
-struct gait_leg_state
-{
-    enum quadruped_leg_movement coxa;
-    enum quadruped_leg_movement femur;
-};
-
-struct gait_phase
-{
-    struct gait_leg_state legs[QUADRUPED_LEG_COUNT];
-};
-
-struct gait_sequence
-{
-    const struct gait_phase *phases;
-    uint8_t num_phases;
-};
-
-/* Helper macro: compact leg-state literal */
-#define LS(c, f) {.coxa = (c), .femur = (f)}
-
-/* Shorthand aliases for readability inside the tables */
+/* Shorthand aliases for readability inside the gait helpers */
 #define CU QUADRUPED_LEG_MOVEMENT_COXA_UP
 #define CD QUADRUPED_LEG_MOVEMENT_COXA_DOWN
 #define FF QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD
@@ -67,83 +40,203 @@ struct gait_sequence
 #define BL QUADRUPED_LEG_BACK_LEFT
 #define BR QUADRUPED_LEG_BACK_RIGHT
 
-/* -------------------------------------------------------------------------
- * IDLE — hold neutral stance (single phase, always resolves immediately)
- * ------------------------------------------------------------------------- */
-static const struct gait_phase idle_phases[] = {
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
+#define MOVE_DELAY_SHORT_DIVISOR 24u
+
+enum gait_progression
+{
+    GAIT_PROGRESSION_FORWARD = 0,
+    GAIT_PROGRESSION_REVERSE,
 };
 
-/* -------------------------------------------------------------------------
- * FORWARD — diagonal trot (FL+BR / FR+BL pairs alternate)
- *
- * Phase 0: Lift diagonal pair 1 (FL+BR) and swing forward;
- *          pair 2 (FR+BL) remains grounded and pushes backward.
- * Phase 1: Lower all legs to neutral (weight transfer).
- * Phase 2: Lift diagonal pair 2 (FR+BL) and swing forward;
- *          pair 1 (FL+BR) remains grounded and pushes backward.
- * Phase 3: Lower all legs to neutral (weight transfer).
- * ------------------------------------------------------------------------- */
-static const struct gait_phase forward_phases[] = {
-    {.legs = {[FL] = LS(CU, FF), [FR] = LS(CD, FB), [BL] = LS(CD, FB), [BR] = LS(CU, FF)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-    {.legs = {[FL] = LS(CD, FB), [FR] = LS(CU, FF), [BL] = LS(CU, FF), [BR] = LS(CD, FB)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-};
+static uint32_t gait_short_delay_ms(uint32_t delay_ms)
+{
+    if (delay_ms == 0u)
+    {
+        return 0u;
+    }
 
-/* -------------------------------------------------------------------------
- * REVERSE — diagonal trot in the opposite direction
- * ------------------------------------------------------------------------- */
-static const struct gait_phase reverse_phases[] = {
-    {.legs = {[FL] = LS(CU, FB), [FR] = LS(CD, FF), [BL] = LS(CD, FF), [BR] = LS(CU, FB)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-    {.legs = {[FL] = LS(CD, FF), [FR] = LS(CU, FB), [BL] = LS(CU, FB), [BR] = LS(CD, FF)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-};
+    return MAX(1u, delay_ms / MOVE_DELAY_SHORT_DIVISOR);
+}
 
-/* -------------------------------------------------------------------------
- * ROTATE LEFT (counter-clockwise viewed from above)
- *
- * Phase 0: Lift left-side legs (FL+BL) and swing them backward;
- *          right-side legs (FR+BR) stay grounded and push forward.
- * Phase 1: Lower all to neutral.
- * Phase 2: Lift right-side legs (FR+BR) and swing them backward;
- *          left-side legs (FL+BL) stay grounded and push forward.
- * Phase 3: Lower all to neutral.
- * ------------------------------------------------------------------------- */
-static const struct gait_phase rotate_left_phases[] = {
-    {.legs = {[FL] = LS(CU, FB), [FR] = LS(CD, FF), [BL] = LS(CU, FB), [BR] = LS(CD, FF)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-    {.legs = {[FL] = LS(CD, FF), [FR] = LS(CU, FB), [BL] = LS(CD, FF), [BR] = LS(CU, FB)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-};
+static uint32_t gait_half_delay_ms(uint32_t delay_ms)
+{
+    if (delay_ms == 0u)
+    {
+        return 0u;
+    }
 
-/* -------------------------------------------------------------------------
- * ROTATE RIGHT (clockwise viewed from above) — mirror of ROTATE LEFT
- * ------------------------------------------------------------------------- */
-static const struct gait_phase rotate_right_phases[] = {
-    {.legs = {[FL] = LS(CD, FF), [FR] = LS(CU, FB), [BL] = LS(CD, FF), [BR] = LS(CU, FB)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-    {.legs = {[FL] = LS(CU, FB), [FR] = LS(CD, FF), [BL] = LS(CU, FB), [BR] = LS(CD, FF)}},
-    {.legs = {[FL] = LS(CD, FI), [FR] = LS(CD, FI), [BL] = LS(CD, FI), [BR] = LS(CD, FI)}},
-};
+    return MAX(1u, delay_ms / 2u);
+}
 
-/* -------------------------------------------------------------------------
- * Gait dispatch table — indexed by enum move_command
- * ------------------------------------------------------------------------- */
-static const struct gait_sequence gait_table[] = {
-    [MOVE_COMMAND_IDLE] = {idle_phases, ARRAY_SIZE(idle_phases)},
-    [MOVE_COMMAND_FORWARD] = {forward_phases, ARRAY_SIZE(forward_phases)},
-    [MOVE_COMMAND_REVERSE] = {reverse_phases, ARRAY_SIZE(reverse_phases)},
-    [MOVE_COMMAND_ROTATE_LEFT] = {rotate_left_phases, ARRAY_SIZE(rotate_left_phases)},
-    [MOVE_COMMAND_ROTATE_RIGHT] = {rotate_right_phases, ARRAY_SIZE(rotate_right_phases)},
-};
+static void gait_sleep(uint32_t delay_ms)
+{
+    if (delay_ms > 0u)
+    {
+        k_msleep(delay_ms);
+    }
+}
 
-/* -------------------------------------------------------------------------
- * State
- * ------------------------------------------------------------------------- */
-static enum move_command last_command = MOVE_COMMAND_IDLE;
-static uint8_t gait_step = 0;
+static int gait_apply_movement(enum quadruped_leg_index leg,
+                               enum quadruped_leg_movement movement)
+{
+    int ret = quadruped_set_leg_movement(leg, movement);
+
+    if (ret != 0)
+    {
+        LOG_ERR("movement failed leg=%d movement=%d ret=%d", (int)leg, (int)movement, ret);
+    }
+
+    return ret;
+}
+
+static int gait_apply_action(enum quadruped_leg_index leg,
+                             enum quadruped_leg_movement movement,
+                             uint32_t wait_ms)
+{
+    int ret = gait_apply_movement(leg, movement);
+
+    gait_sleep(wait_ms);
+
+    return ret;
+}
+
+static enum gait_progression gait_leg_progression(enum quadruped_leg_index leg,
+                                                  enum gait_progression left_progression,
+                                                  enum gait_progression right_progression)
+{
+    switch (leg)
+    {
+    case FL:
+    case BL:
+        return left_progression;
+    case FR:
+    case BR:
+        return right_progression;
+    default:
+        return GAIT_PROGRESSION_FORWARD;
+    }
+}
+
+static enum quadruped_leg_movement gait_femur_movement_for_leg(enum quadruped_leg_index leg,
+                                                               bool lifted,
+                                                               enum gait_progression left_progression,
+                                                               enum gait_progression right_progression)
+{
+    enum gait_progression progression = gait_leg_progression(leg, left_progression, right_progression);
+
+    if (lifted)
+    {
+        return (progression == GAIT_PROGRESSION_FORWARD) ? FF : FB;
+    }
+
+    return (progression == GAIT_PROGRESSION_FORWARD) ? FB : FF;
+}
+
+static int gait_set_idle_pose(void)
+{
+    int status = 0;
+
+    for (enum quadruped_leg_index leg = 0; leg < QUADRUPED_LEG_COUNT; leg++)
+    {
+        if (gait_apply_movement(leg, CD) != 0)
+        {
+            status = -EIO;
+        }
+
+        if (gait_apply_movement(leg, FI) != 0)
+        {
+            status = -EIO;
+        }
+    }
+
+    return status;
+}
+
+static int gait_run_half_cycle(enum quadruped_leg_index lift_leg_1,
+                               enum quadruped_leg_index lift_leg_2,
+                               enum quadruped_leg_index support_leg_1,
+                               enum quadruped_leg_index support_leg_2,
+                               enum gait_progression left_progression,
+                               enum gait_progression right_progression,
+                               uint32_t delay_ms)
+{
+    int status = 0;
+    const uint32_t short_delay_ms = gait_short_delay_ms(delay_ms);
+    const uint32_t half_delay_ms = gait_half_delay_ms(delay_ms);
+
+    if (gait_apply_action(lift_leg_1, CU, short_delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(lift_leg_2, CU, short_delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(support_leg_1,
+                          gait_femur_movement_for_leg(support_leg_1, false,
+                                                      left_progression, right_progression),
+                          short_delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(support_leg_2,
+                          gait_femur_movement_for_leg(support_leg_2, false,
+                                                      left_progression, right_progression),
+                          half_delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(lift_leg_1,
+                          gait_femur_movement_for_leg(lift_leg_1, true,
+                                                      left_progression, right_progression),
+                          short_delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(lift_leg_2,
+                          gait_femur_movement_for_leg(lift_leg_2, true,
+                                                      left_progression, right_progression),
+                          delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(lift_leg_1, CD, short_delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_apply_action(lift_leg_2, CD, delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    return status;
+}
+
+static int gait_run_cycle(enum gait_progression left_progression,
+                          enum gait_progression right_progression,
+                          uint32_t delay_ms)
+{
+    int status = 0;
+
+    if (gait_run_half_cycle(FR, BL, FL, BR, left_progression, right_progression, delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    if (gait_run_half_cycle(FL, BR, FR, BL, left_progression, right_progression, delay_ms) != 0)
+    {
+        status = -EIO;
+    }
+
+    return status;
+}
 
 static int move_controller_init(void)
 {
@@ -170,50 +263,39 @@ int move_controller_execute(enum move_command cmd, uint32_t delay_ms)
         return -EINVAL;
     }
 
-    if (cmd != last_command)
+    LOG_DBG("cmd=%d delay_ms=%u", (int)cmd, delay_ms);
+
+    switch (cmd)
     {
-        LOG_DBG("Command changed %d -> %d, resetting gait phase", (int)last_command, (int)cmd);
-        last_command = cmd;
-        gait_step = 0;
-    }
-
-    const struct gait_sequence *seq = &gait_table[cmd];
-    const struct gait_phase *phase = &seq->phases[gait_step];
-
-    LOG_DBG("cmd=%d phase=%u/%u", (int)cmd, gait_step, seq->num_phases);
-
-    int status = 0;
-
-    for (enum quadruped_leg_index leg = 0; leg < QUADRUPED_LEG_COUNT; leg++)
+    case MOVE_COMMAND_IDLE:
+        return gait_set_idle_pose();
+    case MOVE_COMMAND_FORWARD:
+        return gait_run_cycle(GAIT_PROGRESSION_FORWARD, GAIT_PROGRESSION_FORWARD, delay_ms);
+    case MOVE_COMMAND_REVERSE:
+        return gait_run_cycle(GAIT_PROGRESSION_REVERSE, GAIT_PROGRESSION_REVERSE, delay_ms);
+    case MOVE_COMMAND_ROTATE_LEFT:
     {
-        int ret;
+        int status = gait_run_cycle(GAIT_PROGRESSION_FORWARD, GAIT_PROGRESSION_REVERSE, delay_ms);
 
-        ret = quadruped_set_leg_movement(leg, phase->legs[leg].coxa);
-        if (ret != 0)
+        if (gait_run_cycle(GAIT_PROGRESSION_FORWARD, GAIT_PROGRESSION_REVERSE, delay_ms) != 0)
         {
-            LOG_ERR("coxa failed leg=%d ret=%d", (int)leg, ret);
-            status = ret;
+            status = -EIO;
         }
 
-        if (delay_ms > 0u)
-        {
-            k_msleep(delay_ms);
-        }
-
-        ret = quadruped_set_leg_movement(leg, phase->legs[leg].femur);
-        if (ret != 0)
-        {
-            LOG_ERR("femur failed leg=%d ret=%d", (int)leg, ret);
-            status = ret;
-        }
-
-        if (delay_ms > 0u)
-        {
-            k_msleep(delay_ms);
-        }
+        return status;
     }
+    case MOVE_COMMAND_ROTATE_RIGHT:
+    {
+        int status = gait_run_cycle(GAIT_PROGRESSION_REVERSE, GAIT_PROGRESSION_FORWARD, delay_ms);
 
-    gait_step = (gait_step + 1) % seq->num_phases;
+        if (gait_run_cycle(GAIT_PROGRESSION_REVERSE, GAIT_PROGRESSION_FORWARD, delay_ms) != 0)
+        {
+            status = -EIO;
+        }
 
-    return status;
+        return status;
+    }
+    default:
+        return -EINVAL;
+    }
 }

@@ -25,17 +25,17 @@
 #include "move_controller/move_controller.h"
 #include "voltage_regulator/voltage_regulator.h"
 
-#define APP_MOVE_DELAY_MS 500u
+#define APP_MOVE_DELAY_MS 300u
 #define APP_MEASUREMENTS_SAMPLE_PERIOD_MS 1000u
 #define APP_MEASUREMENTS_THREAD_STACK_SIZE 1024
-#define APP_MEASUREMENTS_THREAD_PRIORITY 6
+#define APP_MEASUREMENTS_THREAD_PRIORITY 7
 #define APP_BLE_THREAD_STACK_SIZE 1024
-#define APP_BLE_THREAD_PRIORITY 7
+#define APP_BLE_THREAD_PRIORITY 4
 #define APP_BLE_NOTIFY_PERIOD_MS 1000u
 #define APP_MOVE_THREAD_STACK_SIZE 1024
 #define APP_MOVE_THREAD_PRIORITY 5
 #define APP_LED_THREAD_STACK_SIZE 1024
-#define APP_LED_THREAD_PRIORITY 8
+#define APP_LED_THREAD_PRIORITY 6
 #define APP_LED_PERIOD_MS 1000u
 
 LOG_MODULE_REGISTER(app, CONFIG_APP_LOG_LEVEL);
@@ -82,6 +82,7 @@ static void app_move_thread(void *arg1, void *arg2, void *arg3)
         {
             LOG_ERR("move_controller failed: %d", ret);
         }
+        k_sleep(K_MSEC(100u));
     }
 }
 
