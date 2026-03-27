@@ -37,12 +37,12 @@ properties:
     type: boolean
     description: Run ADC calibration before the sequence.
 
-  voltage-divider-numerator:
+  voltage-divider-r1:
     type: int
     description: Voltage divider numerator to scale ADC reading to actual voltage.
     default: 1
 
-  voltage-divider-denominator:
+  voltage-divider-r2:
     type: int
     description: Voltage divider denominator to scale ADC reading to actual voltage.
     default: 1

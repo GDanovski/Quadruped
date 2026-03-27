@@ -37,32 +37,32 @@ static const uint16_t
     quadruped_leg_movement_matrix[QUADRUPED_LEG_COUNT]
                                  [QUADRUPED_LEG_MOVEMENT_COUNT] = {
                                      [QUADRUPED_LEG_FRONT_LEFT] = {
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 1200u,
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 1000u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1700u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1500u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1300u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 800u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 500u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1750u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1150u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1450u,
                                      },
                                      [QUADRUPED_LEG_FRONT_RIGHT] = {
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 1200u,
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 1000u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1700u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1500u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1300u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 800u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 500u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1150u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1750u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1450u,
                                      },
                                      [QUADRUPED_LEG_BACK_LEFT] = {
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 1200u,
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 1000u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1700u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1500u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1300u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 800u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 500u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1750u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1150u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1450u,
                                      },
                                      [QUADRUPED_LEG_BACK_RIGHT] = {
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 1200u,
-                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 1000u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1700u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1500u,
-                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1300u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_UP] = 800u,
+                                         [QUADRUPED_LEG_MOVEMENT_COXA_DOWN] = 500u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_FORWARD] = 1150u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_BACKWORD] = 1750u,
+                                         [QUADRUPED_LEG_MOVEMENT_FEMUR_IDLE] = 1450u,
                                      },
 };
 
@@ -101,7 +101,7 @@ int quadruped_set_leg_movement(enum quadruped_leg_index leg_index,
     data = quadruped_dev->data;
     leg_dev = data->leg_devs[leg_index];
 
-    uint16_t val = quadruped_leg_movement_matrix[leg_index][movement];
+    uint32_t val = quadruped_leg_movement_matrix[leg_index][movement];
 
     switch (movement)
     {
